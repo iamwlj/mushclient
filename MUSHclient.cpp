@@ -221,6 +221,7 @@ static const CLSID clsid =
 { 0x11dfc5e6, 0xad6f, 0x11d0, { 0x8e, 0xae, 0x0, 0xa0, 0x24, 0x7b, 0x3b, 0xfd } };
 
 
+CString MUSHCLIENT_VERSION;
 
 /////////////////////////////////////////////////////////////////////////////
 // CMUSHclientApp initialization
@@ -231,6 +232,12 @@ BOOL CMUSHclientApp::InitInstance()
   m_whenClientStarted = CTime::GetCurrentTime();
 
   char fullfilename [MAX_PATH];
+
+  MUSHCLIENT_VERSION = VERSION_STRING;
+
+#ifdef PRE_RELEASE
+  MUSHCLIENT_VERSION += "-pre";
+#endif
 
   if (GetModuleFileName (NULL, fullfilename, sizeof (fullfilename)))
     m_strMUSHclientFileName = ExtractDirectory (CString (fullfilename));
@@ -468,7 +475,9 @@ BOOL CMUSHclientApp::InitInstance()
 
 	// Standard initialization
 
+#if _MSC_VER == 1200
 	Enable3dControls();
+#endif
 
   //Make sure this is here so you can use XP Styles
   InitCommonControls();
@@ -834,7 +843,7 @@ BOOL CMUSHclientApp::InitInstance()
 
     version = db_get_int ("control", "Version", 0);	
 
-    if (version < THISVERSION)  // THISVERSION is defined at start of this module
+    if (version < THISVERSION)  // THISVERSION is defined in version.h
       {
 
       CWelcome1Dlg dlg;         // Welcome to this version dialog
@@ -1846,8 +1855,8 @@ CTextDocument * pTextDoc = FindNotepad (strTitle);
     return false;
     } // end of having an existing notepad document
 
-  BOOL bOK = CreateTextWindow (strText,     // contents
-                      strTitle,     // title
+  BOOL bOK = CreateTextWindow ((LPCTSTR) strText,     // contents
+                      (LPCTSTR) strTitle,     // title
                       NULL,   // document
                       0,      // document number
                       App.m_strDefaultInputFont,

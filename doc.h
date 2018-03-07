@@ -14,17 +14,10 @@
 #include "paneline.h"
 #include "miniwindow.h"
 #include "plugins.h"
+#include "version.h"
 
-#define COMPRESS_BUFFER_LENGTH 1024   // size of decompression buffer
-
-// ============================================================================
-
-// New versions - things to change
-
-#define THISVERSION 500                       // Step 1.
-const CString MUSHCLIENT_VERSION = "5.00";    // Step 2.
-// Step 3. Don't forget VERSION resource in Resources tab
-// Step 4. Remember: README.TXT 
+#define COMPRESS_BUFFER_LENGTH 10000   // size of decompression buffer
+extern CString MUSHCLIENT_VERSION;
 
 // ============================================================================
 
@@ -932,6 +925,13 @@ public:
   unsigned short m_bLogScriptErrors;          // write scripting error messages to log file?
   unsigned short m_bOmitSavedDateFromSaveFiles; // if set, do not write the date saved to save files
 
+  // version 5.06
+
+  unsigned short m_iFadeOutputBufferAfterSeconds; // fade output buffer after these many seconds (0 = disable)
+  unsigned short m_FadeOutputOpacityPercent;      // what opacity to fade to (0 to 100 percent)
+  unsigned short m_FadeOutputSeconds;             // how many seconds to fade over
+  unsigned short m_bCtrlBackspaceDeletesLastWord; // Ctrl+Backspace deletes last word in command window
+
   // end of stuff saved to disk **************************************************************
 
   // stuff from pre version 11, read from disk but not saved
@@ -1167,7 +1167,7 @@ public:
   CString m_logfile_name;
   CTime m_LastFlushTime;
 
-  CFont * m_font [8];     // 8 fonts - normal, bold, italic, bold-normal etc.
+  CFont * m_font [16];     // 16 fonts - normal, bold, italic, bold-normal etc.
   int m_FontHeight,
       m_FontWidth; 
 
@@ -1374,6 +1374,7 @@ public:
   list<CPaneStyle> m_OutstandingLines;
   bool m_bNotesNotWantedNow;
   bool m_bDoingSimulate;
+  bool m_bLineOmittedFromOutput;
 
   BOOL m_bScrollBarWanted;      // true if we want to see scroll bars
 
@@ -1388,6 +1389,8 @@ public:
   CString m_strWindowTitle;     // for SetTitle
   CString m_strMainWindowTitle; // for SetMainTitle
 
+  CTime m_timeFadeCancelled;    // when we last scrolled up and cancelled faded text
+  CTime m_timeLastWindowDraw;   // when we last redrew the output window
 
   // see enum above: eKeepEvaluatingTriggers, eStopEvaluatingTriggers, 
   //                 eStopEvaluatingTriggersInAllPlugins 
@@ -1405,7 +1408,6 @@ public:
 // Operations
 public:
 	BOOL ConnectSocket(void);
-	void ProcessPendingRead();
 	void DoSendMsg(const CString& strText, 
                  const bool bEchoIt,
                  const bool bLogIt);
@@ -1831,7 +1833,7 @@ public:
 
 #endif // PANE
 
-  const COLORREF TranslateColour (const COLORREF & source) const;
+  const COLORREF TranslateColour (const COLORREF & source, const double opacity) const;
 
   void OnConnect(int nErrorCode);
   void HostNameResolved (WPARAM wParam, LPARAM lParam);
@@ -2826,6 +2828,7 @@ public:
 	afx_msg void SetTitle(LPCTSTR Title);
 	afx_msg void SetMainTitle(LPCTSTR Title);
 	afx_msg void StopEvaluatingTriggers(BOOL AllPlugins);
+	afx_msg void SetUnseenLines(long Counter);
 	afx_msg long GetNormalColour(short WhichColour);
 	afx_msg void SetNormalColour(short WhichColour, long nNewValue);
 	afx_msg long GetBoldColour(short WhichColour);

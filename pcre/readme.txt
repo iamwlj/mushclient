@@ -1,8 +1,19 @@
+LICENSE
+-------
+
+See the file LICENSE for the PCRE license details.
+
+Note that the PCRE source is unchanged except as noted below.
+
+
+BUILDING A NEW VERSION
+----------------------
+
 PCRE built as follows:
 
-1. Download: ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.37.zip
+1. Download: ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.39.zip
 
-2. Unzip the file pcre-8.36.zip
+2. Unzip the file pcre-8.39.zip
 
 
 3. Copy the following files to the mushclient source "pcre" directory:

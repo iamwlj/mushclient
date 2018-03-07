@@ -1,6 +1,27 @@
+LICENSE
+-------
+
+See:
+
+  https://www.sqlite.org/copyright.html
+
+All of the code and documentation in SQLite has been dedicated to the public domain by the authors.
+...
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute the original SQLite code, 
+either in source code form or as a compiled binary, for any purpose, commercial or non-commercial, and by any means. 
+
+
+Note that the SQLite3 source is unchanged except as noted below.
+
+
+BUILDING A NEW VERSION
+----------------------
+
+
+
 Sqlite3 built as follows:
 
-1. Download recent version from https://www.sqlite.org/2015/sqlite-amalgamation-3081101.zip
+1. Download recent version from https://www.sqlite.org/2017/sqlite-amalgamation-3160200.zip
 
 2. Unzip the file
 
@@ -14,7 +35,7 @@ sqlite3ext.h
 3. Edit: sqlite3.c and add the following lines to the start of it:
 
 // These first few lines added by NJG
-// version 3.8.8.3
+// version 3.16.2
 
 # pragma warning (disable : 4018)  // signed/unsigned mismatch
 # pragma warning (disable : 4022)  // pointer mismatch for actual parameter x

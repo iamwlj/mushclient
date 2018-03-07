@@ -8,6 +8,7 @@ Author: Nick Gammon
 Date:   15th July 2009
 Modified: 16th November 2010 to add preprocessing
 Modified: 29th November 2010 by Fiendish to improve dragging offscreen
+Modified: 8th February 2018 by Nick to remember the flags setting (eg. absolute position)
 
 This module is intended to make it easier to add drag handlers for miniwindows.
 
@@ -271,7 +272,6 @@ local function make_check_map_position_handler (mwi)
          mwi.window_left > GetInfo (281) - mwi.margin or
          mwi.window_top < 0 or -- don't drag title out of view
          mwi.window_top > GetInfo (280) - mwi.margin then
-           mwi.window_left, mwi.window_top = 0, 0  -- reset to center right
            mwi.window_mode = miniwin.pos_center_right
            mwi.window_flags = 0
       end -- if not visible
@@ -305,7 +305,7 @@ function movewindow.install (win, default_position, default_flags, nocheck, frie
      -- save current position in table (obtained from state file)
      window_left  = tonumber (GetVariable ("mw_" .. win .. "_windowx")) or (start_position and start_position.x) or 0,
      window_top   = tonumber (GetVariable ("mw_" .. win .. "_windowy")) or (start_position and start_position.y) or 0,     
-     window_mode  = tonumber (GetVariable ("mw_" .. win .. "_windowmode")) or default_position,
+     window_mode  = default_position,
      window_flags = tonumber (GetVariable ("mw_" .. win .. "_windowflags")) or default_flags,
      window_friends = friends or {},
      window_friend_deltas = {},
@@ -392,20 +392,19 @@ function movewindow.save_state (win)
     return
   end -- no such window
   
-  -- remember where the window was 
+  -- remember where the window was
+
+  -- use actual last specified position, not where we happen to think it is, in case another plugin moves it
+  -- suggested by Fiendish, 27 August 2012.
+  if WindowInfo (win, 1) then
+    mwi.window_left = WindowInfo(win, 1)
+  end
+  if WindowInfo (win, 2) then
+    mwi.window_top = WindowInfo(win, 2)
+  end
+
   SetVariable ("mw_" .. win .. "_windowx",      mwi.window_left)
   SetVariable ("mw_" .. win .. "_windowy",      mwi.window_top)
-  SetVariable ("mw_" .. win .. "_windowmode",   mwi.window_mode)
   SetVariable ("mw_" .. win .. "_windowflags",  mwi.window_flags)
-  
-  -- use actual position, not where we happen to think it is, in case another plugin moves it
-  -- suggested by Fiendish, 27 August 2012.
-  if WindowInfo (win, 10) then
-    SetVariable ("mw_" .. win .. "_windowx",    WindowInfo(win, 10))
-  end
-  if WindowInfo (win, 11) then
-    SetVariable ("mw_" .. win .. "_windowy",    WindowInfo(win, 11))
-  end
-  
 
-end -- movewindow.save_state  
+end -- movewindow.save_state

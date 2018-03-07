@@ -68,6 +68,12 @@ public:
   CPoint m_scroll_position;
   CPoint m_scroll_limit;
 
+  // local copies of current scroll bar info
+  CSize m_ScrollbarSizeTotal,
+        m_ScrollbarSizePage,
+        m_ScrollbarSizeLine,
+        m_ScrollbarPosition;
+
   string m_sPreviousMiniWindow;
 
   BOOL m_mousedover;
@@ -91,7 +97,8 @@ void display_text (CDC* pDC,
                    const int len, 
                    const BOOL selected,
                    long & pixel,
-                   const bool bBackground);
+                   const bool bBackground,
+                   const double opacity);
 
 
 void Blit_Bitmap (CDC* pDestDC, CDC* pSrcDC, 

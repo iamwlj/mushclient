@@ -614,6 +614,7 @@ BEGIN_DISPATCH_MAP(CMUSHclientDoc, CDocument)
 	DISP_FUNCTION(CMUSHclientDoc, "SetTitle", SetTitle, VT_EMPTY, VTS_BSTR)
 	DISP_FUNCTION(CMUSHclientDoc, "SetMainTitle", SetMainTitle, VT_EMPTY, VTS_BSTR)
 	DISP_FUNCTION(CMUSHclientDoc, "StopEvaluatingTriggers", StopEvaluatingTriggers, VT_EMPTY, VTS_BOOL)
+	DISP_FUNCTION(CMUSHclientDoc, "SetUnseenLines", SetUnseenLines, VT_EMPTY, VTS_I4)
 	DISP_PROPERTY_PARAM(CMUSHclientDoc, "NormalColour", GetNormalColour, SetNormalColour, VT_I4, VTS_I2)
 	DISP_PROPERTY_PARAM(CMUSHclientDoc, "BoldColour", GetBoldColour, SetBoldColour, VT_I4, VTS_I2)
 	DISP_PROPERTY_PARAM(CMUSHclientDoc, "CustomColourText", GetCustomColourText, SetCustomColourText, VT_I4, VTS_I2)
@@ -776,7 +777,7 @@ void CMUSHclientDoc::SetUpOutputWindow (void)
   Note (Translate ("Written by Nick Gammon."));
   Note ("");
   // show compilation date
-  Note (TFormat ("Compiled: %s.", __DATE__)); 
+  Note (TFormat ("Compiled: %s at %s.", __DATE__, __TIME__)); 
   // show included library versions
   Note (TFormat ("Using: %s, PCRE %s, PNG %s, SQLite3 %s, Zlib %s", 
         LUA_RELEASE, 
@@ -1162,11 +1163,6 @@ CString str;
 	return TRUE;
 }
 
-void CMUSHclientDoc::ProcessPendingRead() 
-{
-	ReceiveMsg();
-}
-
 // SendMsg sends a message (command) to the MUD.
 // If there is already a queue (for speedwalking etc.) it is placed 
 // at the end of the queue. The message is marked to indicate whether
@@ -1352,7 +1348,7 @@ CString str = strText;
 
 void CMUSHclientDoc::ReceiveMsg()
 {
-char buff [1000];   // must be less than COMPRESS_BUFFER_LENGTH or it won't fit
+char buff [9000];   // must be less than COMPRESS_BUFFER_LENGTH or it won't fit
 int count = m_pSocket->Receive (buff, sizeof (buff) - 1);
 
   Frame.CheckTimerFallback ();   // see if time is up for timers to fire
@@ -1746,6 +1742,10 @@ Unicode range              UTF-8 bytes
 
 void CMUSHclientDoc::SetNewLineColour (const int flags)
   {
+
+  // just in case we call this before the output window exists
+  if (m_pCurrentLine == NULL)
+    return;
 
   // find current style
   CStyle * pStyle = m_pCurrentLine->styleList.GetTail ();
@@ -3265,7 +3265,7 @@ void CMUSHclientDoc::ChangeFont (const int nHeight,
 
 int i;
 
-  for (i = 0; i < 8; i++)  
+  for (i = 0; i < NUMITEMS (m_font); i++)  
     {
     delete m_font [i];         // get rid of old font
     m_font [i] = NULL;
@@ -3275,13 +3275,13 @@ int i;
 
   dc.CreateCompatibleDC (NULL);
 
-  for (i = 0; i < 8; i++)  
+  for (i = 0; i < NUMITEMS (m_font); i++)  
     {
      m_font [i] = new CFont;    // create new font
 
      if (!m_font [i])
       {
-      for (int j = 0; j < 8; j++)  
+      for (int j = 0; j < NUMITEMS (m_font); j++)  
         {
         delete m_font [j];         // get rid of old font
         m_font [j] = NULL;
@@ -3301,7 +3301,7 @@ int i;
             bShowBold ? ((i & HILITE) ? FW_BOLD : FW_NORMAL) : nWeight, // int nWeight, 
             bShowItalic ? (i & BLINK) != 0 : 0, // BYTE bItalic, 
             bShowUnderline ? (i & UNDERLINE) != 0 : 0, // BYTE bUnderline, 
-            0, // BYTE cStrikeOut, 
+            i >= 8,     // BYTE cStrikeOut, 
             iFontCharset, // BYTE nCharSet, 
             0, // BYTE nOutPrecision, 
             0, // BYTE nClipPrecision, 
@@ -3309,7 +3309,7 @@ int i;
             MUSHCLIENT_FONT_FAMILY, // BYTE nPitchAndFamily,    // was  FF_DONTCARE
             lpszFacename);// LPCTSTR lpszFacename );
 
-    }   // end of allocating 8 fonts
+    }   // end of allocating 16 fonts
 
    // Get the metrics of the font - use the bold one - it will probably be wider
 
@@ -5126,8 +5126,8 @@ CString strMessage;
               dlg.m_strRecallLinePreamble);
 
   if (!strMessage.IsEmpty ())
-    CreateTextWindow (strMessage, 
-                      TFormat ("Recall: %s",
+    CreateTextWindow ((LPCTSTR) strMessage,
+                      (LPCTSTR) TFormat ("Recall: %s",
                          (LPCTSTR) m_RecallFindInfo.m_strFindStringList.GetHead ()),
                       this,
                       m_iUniqueDocumentNumber,
@@ -5745,7 +5745,7 @@ void  CMUSHclientDoc::SendPacket (const char * lpBuf, const int nBufLen)
   if (m_bDebugIncomingPackets)
     Debug_Packets ("Sent ", lpBuf, nBufLen, m_iOutputPacketCount);
 
-  m_pSocket->m_outstanding_data += CString (lpBuf, nBufLen);
+  m_pSocket->m_outstanding_data.append (lpBuf, nBufLen);
 
   m_pSocket->OnSend (0);   // in case FD_WRITE message got lost, try to send again
   
@@ -5795,7 +5795,7 @@ CTextDocument * pTextDoc = NULL;
     } // end of having an existing notepad document
   else
     CreateTextWindow ("",     // contents
-                      TFormat ("Notepad: %s", (LPCTSTR) m_mush_name),     // title
+                      (LPCTSTR) TFormat ("Notepad: %s", (LPCTSTR) m_mush_name),     // title
                       this,   // document
                       m_iUniqueDocumentNumber,      // document number
                       m_input_font_name,
@@ -6112,7 +6112,7 @@ CTrigger * pTrigger;
 POSITION pos;
 
   GetTriggerArray ().SetSize (iCount);
-  CTriggerRevMap ().empty ();
+  GetTriggerRevMap ().clear ();
 
   // extract pointers into a simple array
   for (i = 0, pos = GetTriggerMap ().GetStartPosition(); pos; i++)
@@ -6403,8 +6403,11 @@ void CMUSHclientDoc::SendTo (
         break;
 
     case eSendToNotepad:
-        CreateTextWindow (strSendText + ENDLINE,     // contents
-                          strDescription,     // title
+      {
+        CString strContents = strSendText;
+        strContents += ENDLINE;
+        CreateTextWindow ((LPCTSTR) strContents,     // contents
+                          (LPCTSTR) strDescription,  // title
                           this,   // document
                           m_iUniqueDocumentNumber,      // document number
                           m_input_font_name,
@@ -6423,6 +6426,7 @@ void CMUSHclientDoc::SendTo (
                           false,
                           eNotepadTrigger
                           );
+      }
         break;
 
     case eAppendToNotepad:
@@ -7435,7 +7439,9 @@ UINT dFormat = 0;
 
   CloseClipboard();
 
-  CreateTextWindow (strMessage + ENDLINE,     // contents
+  CString strContents = strMessage;
+  strContents += ENDLINE;
+  CreateTextWindow ((LPCTSTR) strContents,     // contents
                     "Clipboard contents",     // title
                     this,   // document
                     m_iUniqueDocumentNumber,      // document number
@@ -7536,22 +7542,31 @@ void CMUSHclientDoc::DoFixMenus(CCmdUI* pCmdUI)
 } // end of CMUSHclientDoc::DoFixMenus
 
 // for mapping one colour to another at drawing time
-const COLORREF CMUSHclientDoc::TranslateColour (const COLORREF & source) const
+const COLORREF CMUSHclientDoc::TranslateColour (const COLORREF & source, const double opacity) const
   {
   // quick escape
   if (m_ColourTranslationMap.empty ())
-    return source;
+    {
+    if (opacity == 1.0)
+      return source;
+    return RGB (opacity * GetRValue (source), opacity * GetGValue (source), opacity * GetBValue (source));
+    }
 
   // search for it
   map<COLORREF, COLORREF>::const_iterator it = m_ColourTranslationMap.find (source);
 
   // not found, use original colour
   if (it == m_ColourTranslationMap.end ())
-    return source;
+    {
+    if (opacity == 1.0)
+      return source;
+    return RGB (opacity * GetRValue (source), opacity * GetGValue (source), opacity * GetBValue (source));
+    }
 
   // return replacement colour
-  return it->second;
-
+  if (opacity == 1.0)
+    return it->second;
+  return RGB (opacity * GetRValue (it->second), opacity * GetGValue (it->second), opacity * GetBValue (it->second));
   }   // end of CMUSHclientDoc::TranslateColour
 
 
@@ -7907,5 +7922,6 @@ void CMUSHclientDoc::FixInputWrap()
       }  // end of if CSendView
     }  // end of for each view
 } // end of CMUSHclientDoc::FixInputWrap()
+
 
 

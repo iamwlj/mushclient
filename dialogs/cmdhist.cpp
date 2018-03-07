@@ -242,8 +242,8 @@ CString str;
   str = m_msgList->GetAt (pos);
 
   // edit current input window
-  CreateTextWindow (str,     // command
-                    TFormat ("Notepad: %s", (LPCTSTR) m_pDoc->m_mush_name),     // title
+  CreateTextWindow ((LPCTSTR) str,     // command
+                    (LPCTSTR) TFormat ("Notepad: %s", (LPCTSTR) m_pDoc->m_mush_name),     // title
                     m_pDoc,   // document
                     m_pDoc->m_iUniqueDocumentNumber,      // document number
                     m_pDoc->m_input_font_name,
